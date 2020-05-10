@@ -12,8 +12,8 @@ WORKDIR /opt/kaldi/src/bin
 RUN sed -i "s:BINFILES =:BINFILES = latgen-faster:g" Makefile
 RUN make latgen-faster
 
-#  Step 2. cd src/ctc_crf, and run the commands below:
-#  make OPENFST=/path/to/your/openfst
+# Step 2. cd src/ctc_crf, and run the commands below:
+# make OPENFST=/path/to/your/openfst
 # For pytorch version 1.0+, use python setup_1_0.py install in the ctc_crf/Makefile.
 WORKDIR /opt/CAT/src/ctc_crf
 RUN OPENFST=/opt/kaldi/tools/openfst make GPUCTC GPUDEN PATHWEIGHT
