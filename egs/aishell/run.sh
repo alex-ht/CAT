@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -exuo pipefail
 # Copyright 2018-2019 Tsinghua University, Author: Keyu An
 # Apache 2.0.
 # This script implements CTC-CRF training on Aishell dataset.
@@ -8,24 +8,33 @@
            ## This relates to the queue.
 
 . ./path.sh
+# Begin configuration section.
 stage=1
 dir=`pwd -P`
 data=$dir/data
 data_url=www.openslr.org/resources/33
 aishell_wav=/home/ouzj02/data_0907/data_aishell/wav
 aishell_trans=/home/ouzj02/data_0907/data_aishell/transcript
-#. utils/parse_options.sh
+# End configuration section
+. utils/parse_options.sh
+
+if [ $stage -le 0 ]; then
+  mkdir -p $data
+  local/download_and_untar.sh $data $data_url data_aishell || exit 1;
+  aishell_wav=$(readlink -f data_aishell/wav)
+  aishell_trans=$(readlink -f data_aishell/transcript)
+fi
 
 if [ $stage -le 1 ]; then
   echo "Data Preparation and FST Construction"
-  # # Use the same datap prepatation script from Kaldi
-  local/aishell_data_prep.sh $aishell_wav $aishell_trans || exit 1;
+  # Use the same datap prepatation script from Kaldi
+  #local/aishell_data_prep.sh $aishell_wav $aishell_trans || exit 1;
   local/download_and_untar.sh $data $data_url resource_aishell || exit 1;
   local/aishell_prepare_phn_dict.sh || exit 1;
   # Compile the lexicon and token FSTs
-  utils/ctc_compile_dict_token.sh --dict-type "phn" \
+  ctc-crf/ctc_compile_dict_token.sh --dict-type "phn" \
     data/local/dict_phn data/local/lang_phn_tmp data/lang_phn || exit 1;
-  # Train and compile LMs. 
+  # Train and compile LMs.
   local/aishell_train_lms.sh data/local/train/text data/local/dict_phn/lexicon.txt data/local/lm_phn || exit 1;
   # Compile the language-model FST and the final decoding graph TLG.fst
   local/aishell_decode_graph.sh data/local/lm_phn data/lang_phn data/lang_phn_test || exit 1;
@@ -119,9 +128,9 @@ if [ $stage -le 7 ]; then
     mkdir -p exp/decode_$set/ark
     python steps/calculate_logits.py  --nj=$nj --input_scp=data/test_data/${set}.scp --output_unit=218 --data_path=$dir --output_dir=exp/decode_$set/ark
   done
-fi  
+fi
 
-if [ $stage -le 8 ]; then  
+if [ $stage -le 8 ]; then
   # now for decode
   acwt=1.0
   for set in test; do

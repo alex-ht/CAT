@@ -15,16 +15,16 @@
 # limitations under the License.
 
 # This script compiles the lexicon and CTC tokens into FSTs. FST compiling slightly differs between the
-# phoneme and character-based lexicons. 
+# phoneme and character-based lexicons.
 
 dict_type="phn"        # the type of lexicon, either "phn" or "char"
 space_char="<SPACE>"   # the character you have used to represent spaces
 
-. utils/parse_options.sh 
+. utils/parse_options.sh
 
-if [ $# -ne 3 ]; then 
-  echo "usage: utils/ctc_compile_dict_token.sh <dict-src-dir> <tmp-dir> <lang-dir>"
-  echo "e.g.: utils/ctc_compile_dict_token.sh data/local/dict_phn data/local/lang_phn_tmp data/lang_phn"
+if [ $# -ne 3 ]; then
+  echo "usage: ctc-crf/ctc_compile_dict_token.sh <dict-src-dir> <tmp-dir> <lang-dir>"
+  echo "e.g.: ctc-crf/ctc_compile_dict_token.sh data/local/dict_phn data/local/lang_phn_tmp data/lang_phn"
   echo "<dict-src-dir> should contain the following files:"
   echo "lexicon.txt lexicon_numbers.txt units.txt"
   echo "options: "
@@ -63,13 +63,13 @@ cat $srcdir/units.txt | awk '{print $1}' > $tmpdir/units.list
 #   --keep_isymbols=false --keep_osymbols=false | fstarcsort --sort_type=olabel > $dir/T.fst || exit 1;
 
 # Hongyu Xiang: Eesen ctc_token_fst.py makes mistakes, as described in the CTC-CRF paper. We correct it
-utils/ctc_token_fst_corrected.py decode $dir/tokens.txt | fstcompile| fstarcsort --sort_type=olabel > $dir/T.fst || exit 1;
+ctc-crf/ctc_token_fst_corrected.py decode $dir/tokens.txt | fstcompile| fstarcsort --sort_type=olabel > $dir/T.fst || exit 1;
 
-# Encode the words with indices. Will be used in lexicon and language model FST compiling. 
+# Encode the words with indices. Will be used in lexicon and language model FST compiling.
 cat $tmpdir/lexiconp.txt | awk '{print $1}' | sort | uniq  | awk '
   BEGIN {
     print "<eps> 0";
-  } 
+  }
   {
     printf("%s %d\n", $1, NR);
   }
@@ -91,7 +91,7 @@ case $dict_type in
        fstaddselfloops  "echo $token_disambig_symbol |" "echo $word_disambig_symbol |" | \
        fstarcsort --sort_type=olabel > $dir/L.fst || exit 1;
        ;;
-  char | bichar) 
+  char | bichar)
      echo "Building a character-based lexicon, with $space_char as the space"
      utils/make_lexicon_fst.pl --pron-probs $tmpdir/lexiconp_disambig.txt 0.5 "$space_char" '#'$ndisambig | \
        fstcompile --isymbols=$dir/tokens.txt --osymbols=$dir/words.txt \
@@ -99,7 +99,7 @@ case $dict_type in
        fstaddselfloops  "echo $token_disambig_symbol |" "echo $word_disambig_symbol |" | \
        fstarcsort --sort_type=olabel > $dir/L.fst || exit 1;
        ;;
-  nchar) 
+  nchar)
      echo "Building a character-based lexicon, with $space_char as the space, but without space probability"
      utils/make_lexicon_fst.pl --pron-probs $tmpdir/lexiconp_disambig.txt 0 "$space_char" '#'$ndisambig | \
        fstcompile --isymbols=$dir/tokens.txt --osymbols=$dir/words.txt \
