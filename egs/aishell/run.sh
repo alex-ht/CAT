@@ -19,8 +19,9 @@ aishell_trans=/home/ouzj02/data_0907/data_aishell/transcript
 . utils/parse_options.sh
 
 if [ $stage -le 0 ]; then
-  mkdir -p $data
+  [ ! -d "$data" ] && mkdir -p $data
   local/download_and_untar.sh $data $data_url data_aishell || exit 1;
+  local/download_and_untar.sh $data $data_url resource_aishell || exit 1;
   aishell_wav=$(readlink -f data_aishell/wav)
   aishell_trans=$(readlink -f data_aishell/transcript)
 fi
@@ -29,8 +30,6 @@ if [ $stage -le 1 ]; then
   echo "Data Preparation and FST Construction"
   # Use the same datap prepatation script from Kaldi
   local/aishell_data_prep.sh $aishell_wav $aishell_trans || exit 1;
-  [ ! -d $data ] && mkdir -p $data
-  local/download_and_untar.sh $data $data_url resource_aishell || exit 1;
   local/aishell_prepare_phn_dict.sh || exit 1;
   # Compile the lexicon and token FSTs
   ctc-crf/ctc_compile_dict_token.sh --dict-type "phn" \
