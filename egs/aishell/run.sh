@@ -22,8 +22,8 @@ if [ $stage -le 0 ]; then
   [ ! -d "$data" ] && mkdir -p $data
   local/download_and_untar.sh $data $data_url data_aishell || exit 1;
   local/download_and_untar.sh $data $data_url resource_aishell || exit 1;
-  aishell_wav=$(readlink -f data_aishell/wav)
-  aishell_trans=$(readlink -f data_aishell/transcript)
+  aishell_wav=$(readlink -f $data/data_aishell/wav)
+  aishell_trans=$(readlink -f $data/data_aishell/transcript)
 fi
 
 if [ $stage -le 1 ]; then
@@ -67,22 +67,21 @@ data_tr=data/train_sp
 data_cv=data/dev_sp
 
 if [ $stage -le 3 ]; then
-  utils/prep_ctc_trans.py data/lang_phn/lexicon_numbers.txt $data_tr/text "<UNK>" > $data_tr/text_number
-  utils/prep_ctc_trans.py data/lang_phn/lexicon_numbers.txt $data_cv/text "<UNK>" > $data_cv/text_number
+  ctc-crf/prep_ctc_trans.py data/lang_phn/lexicon_numbers.txt $data_tr/text "<UNK>" > $data_tr/text_number
+  ctc-crf/prep_ctc_trans.py data/lang_phn/lexicon_numbers.txt $data_cv/text "<UNK>" > $data_cv/text_number
   echo "convert text_number finished"
 
   # prepare denominator
-  utils/prep_ctc_trans.py data/lang_phn/lexicon_numbers.txt data/train/text "<UNK>" > data/train/text_number
+  ctc-crf/prep_ctc_trans.py data/lang_phn/lexicon_numbers.txt data/train/text "<UNK>" > data/train/text_number
   cat data/train/text_number | sort -k 2 | uniq -f 1 > data/train/unique_text_number
   mkdir -p data/den_meta
   chain-est-phone-lm ark:data/train/unique_text_number data/den_meta/phone_lm.fst
-  utils/ctc_token_fst_corrected.py den data/lang_phn/tokens.txt | fstcompile | fstarcsort --sort_type=olabel > data/den_meta/T_den.fst
+  ctc-crf/ctc_token_fst_corrected.py den data/lang_phn/tokens.txt | fstcompile | fstarcsort --sort_type=olabel > data/den_meta/T_den.fst
   fstcompose data/den_meta/T_den.fst data/den_meta/phone_lm.fst > data/den_meta/den_lm.fst
   echo "prepare denominator finished"
-  
 fi
 
-if [ $stage -le 4 ]; then 
+if [ $stage -le 4 ]; then
   ../../src/ctc_crf/path_weight/build/path_weight $data_tr/text_number data/den_meta/phone_lm.fst > $data_tr/weight
   ../../src/ctc_crf/path_weight/build/path_weight $data_cv/text_number data/den_meta/phone_lm.fst > $data_cv/weight
   echo "prepare weight finished"
