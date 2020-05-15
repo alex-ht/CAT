@@ -82,8 +82,8 @@ if [ $stage -le 3 ]; then
 fi
 
 if [ $stage -le 4 ]; then
-  ../../src/ctc_crf/path_weight/build/path_weight $data_tr/text_number data/den_meta/phone_lm.fst > $data_tr/weight
-  ../../src/ctc_crf/path_weight/build/path_weight $data_cv/text_number data/den_meta/phone_lm.fst > $data_cv/weight
+  path_weight $data_tr/text_number data/den_meta/phone_lm.fst > $data_tr/weight
+  path_weight $data_cv/text_number data/den_meta/phone_lm.fst > $data_cv/weight
   echo "prepare weight finished"
 
   feats_tr="ark,s,cs:apply-cmvn --norm-vars=true --utt2spk=ark:$data_tr/utt2spk scp:$data_tr/cmvn.scp scp:$data_tr/feats.scp ark:- \
@@ -96,13 +96,13 @@ if [ $stage -le 4 ]; then
   mkdir -p $ark_dir
   copy-feats "$feats_tr" "ark,scp:$ark_dir/tr.ark,$ark_dir/tr.scp" || exit 1
   copy-feats "$feats_cv" "ark,scp:$ark_dir/cv.ark,$ark_dir/cv.scp" || exit 1
-  
+
   echo "copy -feats finished"
 
   ark_dir=data/all_ark
   mkdir -p data/hdf5
-  python utils/convert_to_hdf5.py $ark_dir/cv.scp $data_cv/text_number $data_cv/weight data/hdf5/cv.hdf5
-  python utils/convert_to_hdf5.py $ark_dir/tr.scp $data_tr/text_number $data_tr/weight data/hdf5/tr.hdf5
+  python ctc-crf/convert_to_hdf5.py $ark_dir/cv.scp $data_cv/text_number $data_cv/weight data/hdf5/cv.hdf5
+  python ctc-crf/convert_to_hdf5.py $ark_dir/tr.scp $data_tr/text_number $data_tr/weight data/hdf5/tr.hdf5
 fi
 
 data_test=data/test
@@ -117,7 +117,7 @@ fi
 
 if [ $stage -le 6 ]; then
     echo "nn training."
-    python steps/train.py --output_unit=218 --lamb=0.01 --data_path=$dir
+    python ctc-crf/train.py --output_unit=218 --lamb=0.01 --data_path=$dir
 fi
 
 nj=20
@@ -125,7 +125,7 @@ nj=20
 if [ $stage -le 7 ]; then
   for set in test; do
     mkdir -p exp/decode_$set/ark
-    python steps/calculate_logits.py  --nj=$nj --input_scp=data/test_data/${set}.scp --output_unit=218 --data_path=$dir --output_dir=exp/decode_$set/ark
+    python ctc-crf/calculate_logits.py  --nj=$nj --input_scp=data/test_data/${set}.scp --output_unit=218 --data_path=$dir --output_dir=exp/decode_$set/ark
   done
 fi
 
@@ -136,4 +136,3 @@ if [ $stage -le 8 ]; then
       bash local/decode.sh $acwt $set $nj
   done
 fi
-
