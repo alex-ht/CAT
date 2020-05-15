@@ -7,7 +7,6 @@ from torch.nn.parameter import Parameter
 import six
 import numpy as np
 import math
-import batchnormsync as bns
 
 
 def pad_list(xs, pad_value):
@@ -138,7 +137,7 @@ class LSTMrowCONV(torch.nn.Module)
         xs_pad = self.Lookahead(xs_pad)
         return xs_pad, ilens
 
-    
+
 class TDNN(torch.nn.Module):
     def __init__(self, input_dim, output_dim, half_context=1):
         super(TDNN, self).__init__()
@@ -146,16 +145,16 @@ class TDNN(torch.nn.Module):
         self.output_dim = output_dim
         self.half_context = half_context
         self.conv = torch.nn.Conv1d(self.input_dim, self.output_dim, 2*half_context+1, padding=half_context)
-        self.bn = bns.BatchnormSync(self.output_dim, eps=1e-5, affine=True)
-        
+        self.bn = torch.nn.BatchNorm1d(self.output_dim)
+
     def forward(self, features, input_lengths):
         tdnn_in = features.transpose(1,2)
         tdnn_out = self.conv(tdnn_in)
         output = F.relu(tdnn_out)
         output = self.bn(output, input_lengths)
         return output.transpose(1,2)
-    
-    
+
+
 class TDNN_LSTM(torch.nn.Module):
     def __init__(self, idim,  hdim, n_layers, dropout):
         super(TDNN_LSTM, self).__init__()
@@ -164,7 +163,7 @@ class TDNN_LSTM(torch.nn.Module):
             setattr(self, "tdnn%d-1" % i, TDNN(hdim, hdim))
             setattr(self, "tdnn%d-2" % i, TDNN(hdim, hdim))
             setattr(self, "lstm%d" % i, torch.nn.LSTM(hdim,hdim, num_layers=1, bidirectional=False, batch_first=True))
-            setattr(self, "bn%d" % i, bns.BatchnormSync(hdim, eps=1e-5, affine=True))
+            setattr(self, "bn%d" % i, torch.nn.BatchNorm1d(hdim))
             setattr(self, "dropout%d" % i, torch.nn.Dropout(dropout))
         self.n_layers = n_layers
 
@@ -181,7 +180,7 @@ class TDNN_LSTM(torch.nn.Module):
 
             unilstm = getattr(self, 'lstm' + str(layer))
             unilstm.flatten_parameters()
-            
+
             packed_input = torch.nn.utils.rnn.pack_padded_sequence(xs_pad, ilens, batch_first=True)
             packed_output, _ = unilstm(packed_input, None)
             xs_pad, _ = torch.nn.utils.rnn.pad_packed_sequence(packed_output, batch_first=True)

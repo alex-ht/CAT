@@ -1,5 +1,5 @@
 '''
-Copyright 2018-2019 Tsinghua University, Author: Hongyu Xiang 
+Copyright 2018-2019 Tsinghua University, Author: Hongyu Xiang
 Apache 2.0.
 This script shows how to excute CTC-CRF neural network training with PyTorch.
 '''
@@ -18,7 +18,6 @@ from torch.autograd import Function
 from torch.utils.data import Dataset, DataLoader
 from model import BLSTM
 from dataset import SpeechDataset, SpeechDatasetMem, PadCollate
-sys.path.append('../../src/ctc_crf')
 import ctc_crf_base
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,3'
@@ -75,9 +74,9 @@ def train():
     parser.add_argument("--stop_lr", type=float,default=0.00001)
     parser.add_argument("--reg_weight", type=float,default=0.01)
     args = parser.parse_args()
-    
+
     batch_size = args.batch_size
-    
+
     model = Model(args.feature_size, args.hdim, args.output_unit, args.layers, args.dropout,args.lamb)
     device = torch.device("cuda:0")
     model.cuda()
@@ -121,7 +120,7 @@ def train():
             t2 = timeit.default_timer()
             print("time: {}, tr_real_loss: {}, lr: {}".format(t2 - prev_t, real_loss.item(), optimizer.param_groups[0]['lr']))
             prev_t = t2
-       
+
         # save model
         torch.save(model.module.state_dict(), args.data_path+"/models/model.epoch.{}".format(epoch))
 
@@ -130,7 +129,7 @@ def train():
         cv_losses = []
         cv_losses_sum = []
         count = 0
-        
+
         for i, minibatch in enumerate(cv_dataloader):
             print("cv epoch: {}, step: {}".format(epoch, i))
             logits, input_lengths, labels_padded, label_lengths, path_weights = minibatch

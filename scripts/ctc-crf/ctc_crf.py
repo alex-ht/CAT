@@ -1,5 +1,5 @@
 '''
-Copyright 2018-2019 Tsinghua University, Author: Hongyu Xiang 
+Copyright 2018-2019 Tsinghua University, Author: Hongyu Xiang
 Apache 2.0.
 This script shows the implementation of CRF loss function.
 '''
@@ -7,8 +7,6 @@ This script shows the implementation of CRF loss function.
 import torch
 from torch.autograd import Function
 from torch.nn import Module
-import sys
-sys.path.append('../../src/ctc_crf')
 import ctc_crf_base
 
 def _assert_no_grad(tensor):
@@ -57,7 +55,7 @@ class CTC_CRF_LOSS(Module):
         self.ctc_crf = _CTC_CRF.apply
         self.lamb = lamb
         self.size_average = size_average
-    
+
     def forward(self, logits, labels, input_lengths, label_lengths):
         assert len(labels.size()) == 1
         _assert_no_grad(labels)

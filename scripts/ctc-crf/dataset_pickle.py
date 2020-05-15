@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 import sys
-sys.path.append('../../utils')
 import kaldi_io
 import pickle
 from torch.utils.data import Dataset, DataLoader
@@ -10,10 +9,10 @@ class SpeechDataset(Dataset):
     def __init__(self, pickle_path):
         with open(pickle_path) as f:
             self.dataset = pickle.load(f)
-        
+
     def __len__(self):
         return len(self.dataset)
-    
+
     def __getitem__(self, idx):
         key, feature_path, label, weight = self.dataset[idx]
         mat = np.asarray(kaldi_io.read_mat(feature_path))
