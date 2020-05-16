@@ -20,8 +20,7 @@ from model import BLSTM
 from dataset import SpeechDataset, SpeechDatasetMem, PadCollate
 import ctc_crf_base
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,3'
-TARGET_GPUS = [0, 1, 2,3]
+TARGET_GPUS = list(map(int, os.environ['CUDA_VISIBLE_DEVICES'].split(",")))
 gpus = torch.IntTensor(TARGET_GPUS)
 ctc_crf_base.init_env('data/den_meta/den_lm.fst', gpus)
 
@@ -86,8 +85,8 @@ def train():
     lr = args.lr
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
-    tr_dataset = SpeechDatasetMem(args.data_path+"/data/hdf5/tr.hdf5")
-    tr_dataloader = DataLoader(tr_dataset, batch_size=batch_size, shuffle=True, num_workers=16, collate_fn=PadCollate())
+    tr_dataset = SpeechDataset(args.data_path+"/data/hdf5/tr.hdf5")
+    tr_dataloader = DataLoader(tr_dataset, batch_size=batch_size, shuffle=True, num_workers=0, collate_fn=PadCollate())
 
     cv_dataset = SpeechDatasetMem(args.data_path+"/data/hdf5/cv.hdf5")
     cv_dataloader = DataLoader(cv_dataset, batch_size=batch_size, shuffle=False, num_workers=16, collate_fn=PadCollate())

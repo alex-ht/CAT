@@ -7,20 +7,20 @@ import sys
 class SpeechDataset(Dataset):
     def __init__(self, h5py_path):
         self.h5py_path = h5py_path
-        hdf5_file = h5py.File(h5py_path, 'r')
-        self.keys = hdf5_file.keys()
-        hdf5_file.close()
-        
+        self.hdf5_file = h5py.File(h5py_path, 'r')
+        self.keys = list(self.hdf5_file.keys())
+
+    def __del__(self):
+        self.hdf5_file.close()
+
     def __len__(self):
         return len(self.keys)
-    
+
     def __getitem__(self, idx):
-        hdf5_file = h5py.File(self.h5py_path, 'r')
-        dataset = hdf5_file[self.keys[idx]]
-        mat = dataset.value
+        dataset = self.hdf5_file[self.keys[idx]]
+        mat = dataset[()]
         label = dataset.attrs['label']
         weight = dataset.attrs['weight']
-        hdf5_file.close()
         return torch.FloatTensor(mat), torch.IntTensor(label), torch.FloatTensor(weight)
 
 class SpeechDatasetMem(Dataset):
