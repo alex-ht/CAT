@@ -98,11 +98,10 @@ if [ $stage -le 4 ]; then
   copy-feats "$feats_cv" "ark,scp:$ark_dir/cv.ark,$ark_dir/cv.scp" || exit 1
 
   echo "copy -feats finished"
-
   ark_dir=data/all_ark
   mkdir -p data/hdf5
-  python ctc-crf/convert_to_hdf5.py $ark_dir/cv.scp $data_cv/text_number $data_cv/weight data/hdf5/cv.hdf5
-  python ctc-crf/convert_to_hdf5.py $ark_dir/tr.scp $data_tr/text_number $data_tr/weight data/hdf5/tr.hdf5
+  python3 ctc-crf/convert_to_hdf5.py $ark_dir/cv.scp $data_cv/text_number $data_cv/weight data/hdf5/cv.hdf5
+  python3 ctc-crf/convert_to_hdf5.py $ark_dir/tr.scp $data_tr/text_number $data_tr/weight data/hdf5/tr.hdf5
 fi
 
 data_test=data/test
@@ -117,7 +116,7 @@ fi
 
 if [ $stage -le 6 ]; then
     echo "nn training."
-    python ctc-crf/train.py --output_unit=218 --lamb=0.01 --data_path=$dir
+    python3 ctc-crf/train.py --batch_size=160 --output_unit=218 --lamb=0.01 --data_path=$dir
 fi
 
 nj=20
@@ -125,7 +124,7 @@ nj=20
 if [ $stage -le 7 ]; then
   for set in test; do
     mkdir -p exp/decode_$set/ark
-    python ctc-crf/calculate_logits.py  --nj=$nj --input_scp=data/test_data/${set}.scp --output_unit=218 --data_path=$dir --output_dir=exp/decode_$set/ark
+    CUDA_VISIBLE_DEVICES=0 python3 ctc-crf/calculate_logits.py --nj=$nj --input_scp=data/test_data/${set}.scp --output_unit=218 --data_path=$dir --output_dir=exp/decode_$set/ark
   done
 fi
 

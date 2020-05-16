@@ -34,6 +34,8 @@ WORKDIR /opt/CAT/src/ctc_crf
 RUN OPENFST=/opt/kaldi/tools/openfst make GPUCTC GPUDEN PATHWEIGHT
 RUN python setup_1_0.py install
 
+RUN conda install h5py
+
 # Clear the APT cache
 RUN apt-get clean
 

@@ -9,8 +9,7 @@ import kaldi_io
 import six
 import argparse
 from torch.autograd import Variable
-from model import BLSTM 
-os.environ['CUDA_VISIBLE_DEVICES']='2'
+from model import BLSTM
 
 class Model(nn.Module):
     def __init__(self, idim, hdim, K, n_layers, dropout):
