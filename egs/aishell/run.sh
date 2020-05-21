@@ -1,5 +1,4 @@
 #!/bin/bash
-set -exuo pipefail
 # Copyright 2018-2019 Tsinghua University, Author: Keyu An
 # Apache 2.0.
 # This script implements CTC-CRF training on Aishell dataset.
@@ -116,7 +115,7 @@ fi
 
 if [ $stage -le 6 ]; then
     echo "nn training."
-    python3 ctc-crf/train.py --batch_size=160 --output_unit=218 --lamb=0.01 --data_path=$dir
+    python3 ctc-crf/train.py --batch_size=100 --output_unit=218 --lamb=0.01 --data_path=$dir
 fi
 
 nj=20
