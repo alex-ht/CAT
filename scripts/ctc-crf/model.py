@@ -146,7 +146,7 @@ class TDNN(torch.nn.Module):
         self.output_dim = output_dim
         self.half_context = half_context
         self.conv = torch.nn.Conv1d(self.input_dim, self.output_dim, 2*half_context+1, padding=half_context)
-        self.bn = MaskedBatchNorm1d(self.output_dim)
+        self.bn = MaskedBatchNorm1d(self.output_dim, eps=1e-5, affine=True)
 
     def forward(self, features, input_lengths):
         tdnn_in = features.transpose(1,2)
@@ -164,7 +164,7 @@ class TDNN_LSTM(torch.nn.Module):
             setattr(self, "tdnn%d-1" % i, TDNN(hdim, hdim))
             setattr(self, "tdnn%d-2" % i, TDNN(hdim, hdim))
             setattr(self, "lstm%d" % i, torch.nn.LSTM(hdim,hdim, num_layers=1, bidirectional=False, batch_first=True))
-            setattr(self, "bn%d" % i, MaskedBatchNorm1d(hdim))
+            setattr(self, "bn%d" % i, MaskedBatchNorm1d(hdim, eps=1e-5, affine=True))
             setattr(self, "dropout%d" % i, torch.nn.Dropout(dropout))
         self.n_layers = n_layers
 
@@ -202,7 +202,7 @@ class BLSTMN(torch.nn.Module):
             else:
                 inputdim = hdim * 2
             setattr(self, "lstm%d" % i, torch.nn.LSTM(inputdim, hdim,num_layers=1, bidirectional=True, batch_first=True))
-            setattr(self, "bn%d" % i, bns.BatchnormSync(hdim*2, eps=1e-5, affine=True))
+            setattr(self, "bn%d" % i, MaskedBatchNorm1d(hdim*2, eps=1e-5, affine=True))
             setattr(self, "dropout%d" % i, torch.nn.Dropout(dropout))
         self.n_layers = n_layers
         self.hdim = hdim
