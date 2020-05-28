@@ -9,7 +9,7 @@ RUN apt-add-repository 'deb https://apt.kitware.com/ubuntu/ bionic main' && apt-
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y cmake flac build-essential git subversion automake autoconf unzip sox gfortran libtool python2.7
 RUN ln -sf /bin/bash /bin/sh
 
-RUN conda install -y mkl-include && \
+RUN conda install -y mkl-include h5py && \
     git clone --depth 1 https://github.com/kaldi-asr/kaldi.git /opt/kaldi && \
     cd /opt/kaldi && \
     cd /opt/kaldi/tools && \
@@ -33,8 +33,6 @@ RUN make latgen-faster
 WORKDIR /opt/CAT/src/ctc_crf
 RUN OPENFST=/opt/kaldi/tools/openfst make GPUCTC GPUDEN PATHWEIGHT
 RUN python setup_1_0.py install
-
-RUN conda install h5py
 
 # Clear the APT cache
 RUN apt-get clean
