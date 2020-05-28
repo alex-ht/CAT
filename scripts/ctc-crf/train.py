@@ -87,8 +87,8 @@ def train():
 
     batch_size = args.batch_size
 
-    model = Model(args.feature_size, args.hdim, args.output_unit, args.layers,
-                  args.dropout, args.lamb)
+    model = Model(args.net, args.feature_size, args.hdim, args.output_unit,
+                  args.layers, args.dropout, args.lamb)
     device = torch.device("cuda:0")
     model.cuda()
     model = nn.DataParallel(model)
