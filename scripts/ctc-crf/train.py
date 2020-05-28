@@ -16,7 +16,7 @@ import sys
 import argparse
 from torch.autograd import Function
 from torch.utils.data import Dataset, DataLoader
-from model import BLSTM
+from model import BLSTM, LSTM, VGGBLSTM, VGGLSTM, LSTMrowCONV, TDNN_LSTM, BLSTMN
 from dataset import SpeechDataset, SpeechDatasetMem, PadCollate
 import ctc_crf_base
 
@@ -27,9 +27,9 @@ ctc_crf_base.init_env('data/den_meta/den_lm.fst', gpus)
 os.system("mkdir -p models")
 
 class Model(nn.Module):
-    def __init__(self, idim, hdim,  K, n_layers, dropout, lamb):
+    def __init__(self, net, idim, hdim,  K, n_layers, dropout, lamb):
         super(Model, self).__init__()
-        self.net = BLSTM(idim,  hdim, n_layers, dropout=dropout)
+        self.net = eval(net)(idim,  hdim, n_layers, dropout=dropout)
         self.linear = nn.Linear(hdim*2, K)
         self.loss_fn = CTC_CRF_LOSS( lamb=lamb )
 
@@ -60,6 +60,7 @@ def adjust_lr(optimizer, lr):
 
 def train():
     parser = argparse.ArgumentParser(description="recognition argument")
+    parser.add_argument("--net", choices=['BLSTM', 'LSTM', 'VGGBLSTM', 'VGGLSTM', 'LSTMrowCONV', 'TDNN_LSTM', 'BLSTMN'], default='BLSTM')
     parser.add_argument("--min_epoch", type=int, default=15)
     parser.add_argument("--output_unit", type=int)
     parser.add_argument("--lamb", type=float,default=0.1)
