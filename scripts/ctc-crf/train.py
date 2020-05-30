@@ -83,9 +83,9 @@ def train():
     parser.add_argument("--reg_weight", type=float, default=0.01)
     args = parser.parse_args()
 
-    os.makedirs(args.models)
+    os.makedirs(args.dir, exist_ok = True)
     # save configuration
-    with open(args.models + '/output_unit', "w") as fout:
+    with open(args.dir + '/output_unit', "w") as fout:
         fout.write("%d" % args.output_unit)
 
     model = Model(args.arch, args.feature_size, args.hdim, args.output_unit,
@@ -98,18 +98,18 @@ def train():
     lr = args.lr
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
-    tr_dataset = SpeechDataset(args.data_path + "/tr.hdf5")
+    tr_dataset = SpeechDatasetMem(args.data_path + "/tr.hdf5")
     tr_dataloader = DataLoader(tr_dataset,
                                batch_size=args.batch_size,
                                shuffle=True,
                                num_workers=0,
                                collate_fn=PadCollate())
 
-    cv_dataset = SpeechDatasetMem(args.data_path + "/cv.hdf5")
+    cv_dataset = SpeechDataset(args.data_path + "/cv.hdf5")
     cv_dataloader = DataLoader(cv_dataset,
                                batch_size=args.batch_size,
                                shuffle=False,
-                               num_workers=16,
+                               num_workers=0,
                                collate_fn=PadCollate())
 
     prev_t = 0
