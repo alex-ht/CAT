@@ -28,7 +28,10 @@ class Model(nn.Module):
     def __init__(self, net, idim, hdim, K, n_layers, dropout, lamb):
         super(Model, self).__init__()
         self.net = eval(net)(idim, hdim, n_layers, dropout=dropout)
-        self.linear = nn.Linear(hdim * 2, K)
+        if net in [ 'BLSTM', 'BLSTMN' ]:
+            self.linear = nn.Linear(hdim * 2, K)
+        else:
+            self.linear = nn.Linear(hdim, K)
         self.loss_fn = CTC_CRF_LOSS(lamb=lamb)
 
     def forward(self, logits, labels_padded, input_lengths, label_lengths):
