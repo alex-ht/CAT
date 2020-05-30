@@ -24,9 +24,6 @@ TARGET_GPUS = list(map(int, os.environ['CUDA_VISIBLE_DEVICES'].split(",")))
 gpus = torch.IntTensor(TARGET_GPUS)
 ctc_crf_base.init_env('data/den_meta/den_lm.fst', gpus)
 
-os.system("mkdir -p models")
-
-
 class Model(nn.Module):
     def __init__(self, net, idim, hdim, K, n_layers, dropout, lamb):
         super(Model, self).__init__()
@@ -65,7 +62,8 @@ def adjust_lr(optimizer, lr):
 
 def train():
     parser = argparse.ArgumentParser(description="recognition argument")
-    parser.add_argument("--net",
+    parser.add_argument("dir", default="models")
+    parser.add_argument("--arch",
                         choices=[
                             'BLSTM', 'LSTM', 'VGGBLSTM', 'VGGLSTM',
                             'LSTMrowCONV', 'TDNN_LSTM', 'BLSTMN'
@@ -85,9 +83,12 @@ def train():
     parser.add_argument("--reg_weight", type=float, default=0.01)
     args = parser.parse_args()
 
-    batch_size = args.batch_size
+    os.makedirs(args.models)
+    # save configuration
+    with open(args.models + '/output_unit', "w") as fout:
+        fout.write("%d" % args.output_unit)
 
-    model = Model(args.net, args.feature_size, args.hdim, args.output_unit,
+    model = Model(args.arch, args.feature_size, args.hdim, args.output_unit,
                   args.layers, args.dropout, args.lamb)
     device = torch.device("cuda:0")
     model.cuda()
@@ -97,16 +98,16 @@ def train():
     lr = args.lr
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
-    tr_dataset = SpeechDataset(args.data_path + "/data/hdf5/tr.hdf5")
+    tr_dataset = SpeechDataset(args.data_path + "/tr.hdf5")
     tr_dataloader = DataLoader(tr_dataset,
-                               batch_size=batch_size,
+                               batch_size=args.batch_size,
                                shuffle=True,
                                num_workers=0,
                                collate_fn=PadCollate())
 
-    cv_dataset = SpeechDatasetMem(args.data_path + "/data/hdf5/cv.hdf5")
+    cv_dataset = SpeechDatasetMem(args.data_path + "/cv.hdf5")
     cv_dataloader = DataLoader(cv_dataset,
-                               batch_size=batch_size,
+                               batch_size=args.batch_size,
                                shuffle=False,
                                num_workers=16,
                                collate_fn=PadCollate())
@@ -118,7 +119,7 @@ def train():
     while True:
         # training stage
         torch.save(model.module.state_dict(),
-                   args.data_path + "/models/best_model")
+                   args.dir + "/best_model")
         epoch += 1
 
         for i, minibatch in enumerate(tr_dataloader):
@@ -145,7 +146,7 @@ def train():
 
         # save model
         torch.save(model.module.state_dict(),
-                   args.data_path + "/models/model.epoch.{}".format(epoch))
+                   args.dir + "/model.epoch.{}".format(epoch))
 
         # cv stage
         model.eval()
@@ -170,7 +171,7 @@ def train():
         print("mean_cv_loss: {}".format(cv_loss))
         if epoch < args.min_epoch or cv_loss <= prev_cv_loss:
             torch.save(model.module.state_dict(),
-                       args.data_path + "/models/best_model")
+                       args.dir + "/best_model")
             prev_cv_loss = cv_loss
         else:
             print(

@@ -9,12 +9,12 @@ import kaldi_io
 import six
 import argparse
 from torch.autograd import Variable
-from model import BLSTM
+from model import BLSTM, LSTM, VGGBLSTM, VGGLSTM, LSTMrowCONV, TDNN_LSTM, BLSTMN
 
 class Model(nn.Module):
-    def __init__(self, idim, hdim, K, n_layers, dropout):
+    def __init__(self, net, idim, hdim, K, n_layers, dropout):
         super(Model, self).__init__()
-        self.net = BLSTM(idim, hdim, n_layers, dropout)
+        self.net = eval(net)(idim, hdim, n_layers, dropout)
         self.linear = nn.Linear(hdim * 2, K)
 
     def forward(self, logits, input_lengths):
@@ -27,6 +27,12 @@ class Model(nn.Module):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="inference network")
+    parser.add_argument("--arch",
+                        choices=[
+                            'BLSTM', 'LSTM', 'VGGBLSTM', 'VGGLSTM',
+                            'LSTMrowCONV', 'TDNN_LSTM', 'BLSTMN'
+                        ],
+                        default='BLSTM')
     parser.add_argument("--input_scp", type=str)
     parser.add_argument("--output_dir", type=str)
     parser.add_argument("--output_unit", type=int)
@@ -34,14 +40,14 @@ if __name__ == "__main__":
     parser.add_argument("--layers",type=int,default=6)
     parser.add_argument("--dropout",type=int,default=0.5)
     parser.add_argument("--feature_size",type=int,default=120)
-    parser.add_argument("--data_path",type=str)
+    parser.add_argument("--model",type=str)
     parser.add_argument("--nj",type=int)
     args = parser.parse_args()
 
     batch_size = 128
 
-    model = Model(args.feature_size, args.hdim, args.output_unit, args.layers, args.dropout)
-    model.load_state_dict(torch.load(args.data_path+'/models/best_model'))
+    model = Model(args.arch, args.feature_size, args.hdim, args.output_unit, args.layers, args.dropout)
+    model.load_state_dict(torch.load(args.model))
     model.eval()
     model.cuda()
     n_jobs = args.nj

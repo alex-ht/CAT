@@ -1,6 +1,9 @@
 #!/bin/bash
+
 # Copyright 2018-2019 Tsinghua University, Author: Keyu An
+#           2020      Alex Hung (hung_alex@icloud.com)
 # Apache 2.0.
+
 # This script implements CTC-CRF training on Aishell dataset.
 
 . ./cmd.sh ## You'll want to change cmd.sh to something that will work on your system.
@@ -9,8 +12,7 @@
 . ./path.sh
 # Begin configuration section.
 stage=1
-dir=`pwd -P`
-data=$dir/data
+data=$(readlink -f data)
 data_url=www.openslr.org/resources/33
 aishell_wav=/home/ouzj02/data_0907/data_aishell/wav
 aishell_trans=/home/ouzj02/data_0907/data_aishell/transcript
@@ -20,7 +22,6 @@ aishell_trans=/home/ouzj02/data_0907/data_aishell/transcript
 if [ $stage -le 0 ]; then
   [ ! -d "$data" ] && mkdir -p $data
   local/download_and_untar.sh $data $data_url data_aishell || exit 1;
-  local/download_and_untar.sh $data $data_url resource_aishell || exit 1;
   aishell_wav=$(readlink -f $data/data_aishell/wav)
   aishell_trans=$(readlink -f $data/data_aishell/transcript)
 fi
@@ -29,6 +30,7 @@ if [ $stage -le 1 ]; then
   echo "Data Preparation and FST Construction"
   # Use the same datap prepatation script from Kaldi
   local/aishell_data_prep.sh $aishell_wav $aishell_trans || exit 1;
+  local/download_and_untar.sh $data $data_url resource_aishell || exit 1;
   local/aishell_prepare_phn_dict.sh || exit 1;
   # Compile the lexicon and token FSTs
   ctc-crf/ctc_compile_dict_token.sh --dict-type "phn" \
@@ -110,27 +112,22 @@ if [ $stage -le 5 ]; then
       | add-deltas ark:- ark:- | subsample-feats --n=3 ark:- ark:- |"
   mkdir -p data/test_data
   copy-feats "$feats_test" "ark,scp:data/test_data/test.ark,data/test_data/test.scp"
-
 fi
+
+dir=exp/TDNN
+output_unit=$(awk '{if ($1 == "#0")print $2 - 1 ;}' data/lang_phn/tokens.txt
 
 if [ $stage -le 6 ]; then
     echo "nn training."
-    python3 ctc-crf/train.py --batch_size=100 --output_unit=218 --lamb=0.01 --data_path=$dir
+    python3 ctc-crf/train.py --arch=TDNN --lr=0.001 --batch_size=100 --output_unit=$output_unit --lamb=0.01 $data/hdf5 $dir
 fi
 
 nj=20
 
 if [ $stage -le 7 ]; then
   for set in test; do
-    mkdir -p exp/decode_$set/ark
-    CUDA_VISIBLE_DEVICES=0 python3 ctc-crf/calculate_logits.py --nj=$nj --input_scp=data/test_data/${set}.scp --output_unit=218 --data_path=$dir --output_dir=exp/decode_$set/ark
-  done
-fi
-
-if [ $stage -le 8 ]; then
-  # now for decode
-  acwt=1.0
-  for set in test; do
-      bash local/decode.sh $acwt $set $nj
+    CUDA_VISIBLE_DEVICES=0 \
+    ctc-crf/decode.sh --cmd "$decode_cmd" --nj 20 --acwt 1.0 \
+      data/lang_phn_test data/$set data/${set}_data/test.scp $dir/decode
   done
 fi
