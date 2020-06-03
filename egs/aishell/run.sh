@@ -115,11 +115,11 @@ if [ $stage -le 5 ]; then
 fi
 
 dir=exp/tdnn_lstm
-output_unit=$(awk '{if ($1 == "#0")print $2 - 1 ;}' data/lang_phn/tokens.txt
+output_unit=$(awk '{if ($1 == "#0")print $2 - 1 ;}' data/lang_phn/tokens.txt)
 
 if [ $stage -le 6 ]; then
     echo "nn training."
-    python3 ctc-crf/train.py --arch=TDNN_LSTM --lr=0.001 --batch_size=100 --output_unit=$output_unit --lamb=0.01 --data_path $data/hdf5 $dir
+    python3 ctc-crf/train.py --arch=TDNN_LSTM --lr=0.001 --layers=3 --batch_size=64 --output_unit=$output_unit --lamb=0.01 --data_path $data/hdf5 $dir
 fi
 
 nj=20
@@ -127,7 +127,7 @@ nj=20
 if [ $stage -le 7 ]; then
   for set in test; do
     CUDA_VISIBLE_DEVICES=0 \
-    ctc-crf/decode.sh --cmd "$decode_cmd" --nj 20 --acwt 1.0 \
+    ctc-crf/decode.sh --cmd "$decode_cmd" --nj 20 --acwt 1.0 --calculate-logits-opts "--arch=TDNN_LSTM --layers=3" \
       data/lang_phn_test data/$set data/${set}_data/test.scp $dir/decode
   done
 fi

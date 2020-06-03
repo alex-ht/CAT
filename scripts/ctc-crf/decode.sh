@@ -17,6 +17,7 @@ lattice_beam=8.0 # Beam we use in lattice generation.
 scoring_opts=
 minimize=false
 model=best_model
+calculate_logits_opts="--arch=BLSTM"
 # End configuration section.
 
 echo "$0 $@"  # Print the command line for logging
@@ -47,15 +48,16 @@ dir=$4
 srcdir=`dirname $dir`; # The model directory is one level up from decoding directory.
 
 logits=$dir/logits
-TLG_dir=$graphdir
+TLG_dir=$graph
 
+[ ! -d $dir ] && mkdir -p $dir
 echo "$nj" > $dir/num_jobs
 # Restore configuration
 output_unit=$(cat $srcdir/output_unit)
 
 # check files
 num_error=0
-for f in $TLG_dir/TLG.fst $graphdir/words.txt $input_scp $srcdir/$model; do
+for f in $TLG_dir/TLG.fst $graph/words.txt $input_scp $srcdir/$model; do
   if [ ! -f "$f" ]; then
     echo "Missing file: $f"
     num_error=$((num_error + 1))
@@ -65,18 +67,18 @@ done
 
 if [ $stage -le 0 ]; then
   mkdir -p $logits
-  python ctc-crf/calculate_logits.py \
+  python3 ctc-crf/calculate_logits.py \
     --nj=$nj \
     --input_scp=$input_scp \
     --output_unit=$output_unit \
     --model=$srcdir/$model \
-    --output_dir=$logits
+    --output_dir=$logits $calculate_logits_opts
 fi
 
 if [ $stage -le 1 ]; then
   $cmd JOB=1:$nj $ark_dir/log/decode.JOB.log \
     latgen-faster --max-mem=$max_mem --min-active=$min_active --max-active=$max_active --beam=$beam --lattice-beam=$lattice_beam \
-    --minimize=$minimize --acoustic-scale=$acwt --allow-partial=true --word-symbol-table=$graphdir/words.txt \
+    --minimize=$minimize --acoustic-scale=$acwt --allow-partial=true --word-symbol-table=$graph/words.txt \
     $TLG_dir/TLG.fst "ark:$logits/decode.JOB.ark" "ark:|gzip -c > $dir/lat.JOB.gz" || exit 1
 fi
 
