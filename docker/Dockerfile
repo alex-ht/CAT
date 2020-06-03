@@ -1,7 +1,7 @@
 FROM pytorch/pytorch:1.5-cuda10.1-cudnn7-devel
 
 # Install Kaldi
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y flac build-essential git subversion automake autoconf unzip sox gfortran libtool python2.7
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y cmake flac build-essential git subversion automake autoconf unzip sox gfortran libtool python2.7
 RUN ln -sf /bin/bash /bin/sh
 
 RUN conda install -y mkl-include h5py && \
