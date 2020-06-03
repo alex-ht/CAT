@@ -1,17 +1,11 @@
 FROM pytorch/pytorch:1.5-cuda10.1-cudnn7-devel
 
-# Get latest CMake
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y apt-transport-https ca-certificates gnupg software-properties-common wget
-RUN wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
-RUN apt-add-repository 'deb https://apt.kitware.com/ubuntu/ bionic main' && apt-get update
-
 # Install Kaldi
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y cmake flac build-essential git subversion automake autoconf unzip sox gfortran libtool python2.7
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y flac build-essential git subversion automake autoconf unzip sox gfortran libtool python2.7
 RUN ln -sf /bin/bash /bin/sh
 
 RUN conda install -y mkl-include h5py && \
     git clone --depth 1 https://github.com/kaldi-asr/kaldi.git /opt/kaldi && \
-    cd /opt/kaldi && \
     cd /opt/kaldi/tools && \
     make -j $(nproc) && \
     cd /opt/kaldi/src && \
@@ -22,7 +16,7 @@ RUN conda install -y mkl-include h5py && \
 ADD . /opt/CAT
 
 # Step 1. Copy src/kaldi-patch/latgen-faster.cc to kaldi src/bin, and compile.
-RUN cp /opt/CAT/src/kaldi-patch/latgen-faster.cc /opt/kaldi/src/bin
+ADD src/kaldi-patch/latgen-faster.cc /opt/kaldi/src/bin
 WORKDIR /opt/kaldi/src/bin
 RUN sed -i "s:BINFILES =:BINFILES = latgen-faster:g" Makefile
 RUN make latgen-faster
