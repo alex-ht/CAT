@@ -24,11 +24,12 @@ TARGET_GPUS = list(map(int, os.environ['CUDA_VISIBLE_DEVICES'].split(",")))
 gpus = torch.IntTensor(TARGET_GPUS)
 ctc_crf_base.init_env('data/den_meta/den_lm.fst', gpus)
 
+
 class Model(nn.Module):
     def __init__(self, net, idim, hdim, K, n_layers, dropout, lamb):
         super(Model, self).__init__()
         self.net = eval(net)(idim, hdim, n_layers, dropout=dropout)
-        if net in [ 'BLSTM', 'BLSTMN' ]:
+        if net in ['BLSTM', 'BLSTMN']:
             self.linear = nn.Linear(hdim * 2, K)
         else:
             self.linear = nn.Linear(hdim, K)
@@ -66,12 +67,13 @@ def adjust_lr(optimizer, lr):
 def train():
     parser = argparse.ArgumentParser(description="recognition argument")
     parser.add_argument("dir", default="models")
-    parser.add_argument("--arch",
-                        choices=[
-                            'BLSTM', 'LSTM', 'VGGBLSTM', 'VGGLSTM',
-                            'LSTMrowCONV', 'TDNN_LSTM', 'BLSTMN'
-                        ],
-                        default='BLSTM')
+    parser.add_argument(
+        "--arch",
+        choices=[
+            'BLSTM', 'LSTM', 'VGGBLSTM', 'VGGLSTM', 'LSTMrowCONV', 'TDNN_LSTM',
+            'BLSTMN'
+        ],
+        default='BLSTM')
     parser.add_argument("--min_epoch", type=int, default=15)
     parser.add_argument("--output_unit", type=int)
     parser.add_argument("--lamb", type=float, default=0.1)
@@ -86,10 +88,18 @@ def train():
     parser.add_argument("--reg_weight", type=float, default=0.01)
     args = parser.parse_args()
 
-    os.makedirs(args.dir, exist_ok = True)
+    os.makedirs(args.dir, exist_ok=True)
     # save configuration
-    with open(args.dir + '/output_unit', "w") as fout:
-        fout.write("%d" % args.output_unit)
+    with open(args.dir + '/config.json', "w") as fout:
+        config = {
+            "arch": args.arch,
+            "output_unit": args.output_unit,
+            "hdim": args.hdim,
+            "layers": args.layers,
+            "dropout": args.dropout,
+            "feature_size": args.feature_size,
+        }
+        json.dump(config, fout)
 
     model = Model(args.arch, args.feature_size, args.hdim, args.output_unit,
                   args.layers, args.dropout, args.lamb)
@@ -102,18 +112,20 @@ def train():
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
     tr_dataset = SpeechDatasetMem(args.data_path + "/tr.hdf5")
-    tr_dataloader = DataLoader(tr_dataset,
-                               batch_size=args.batch_size,
-                               shuffle=True,
-                               num_workers=0,
-                               collate_fn=PadCollate())
+    tr_dataloader = DataLoader(
+        tr_dataset,
+        batch_size=args.batch_size,
+        shuffle=True,
+        num_workers=0,
+        collate_fn=PadCollate())
 
     cv_dataset = SpeechDataset(args.data_path + "/cv.hdf5")
-    cv_dataloader = DataLoader(cv_dataset,
-                               batch_size=args.batch_size,
-                               shuffle=False,
-                               num_workers=0,
-                               collate_fn=PadCollate())
+    cv_dataloader = DataLoader(
+        cv_dataset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=0,
+        collate_fn=PadCollate())
 
     prev_t = 0
     epoch = 0
@@ -121,8 +133,7 @@ def train():
     model.train()
     while True:
         # training stage
-        torch.save(model.module.state_dict(),
-                   args.dir + "/best_model")
+        torch.save(model.module.state_dict(), args.dir + "/best_model")
         epoch += 1
 
         for i, minibatch in enumerate(tr_dataloader):
@@ -173,8 +184,7 @@ def train():
         cv_loss = np.sum(np.asarray(cv_losses_sum)) / count
         print("mean_cv_loss: {}".format(cv_loss))
         if epoch < args.min_epoch or cv_loss <= prev_cv_loss:
-            torch.save(model.module.state_dict(),
-                       args.dir + "/best_model")
+            torch.save(model.module.state_dict(), args.dir + "/best_model")
             prev_cv_loss = cv_loss
         else:
             print(

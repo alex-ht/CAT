@@ -17,7 +17,6 @@ lattice_beam=8.0 # Beam we use in lattice generation.
 scoring_opts=
 minimize=false
 model=best_model
-calculate_logits_opts="--arch=BLSTM"
 # End configuration section.
 
 echo "$0 $@"  # Print the command line for logging
@@ -52,12 +51,10 @@ TLG_dir=$graph
 
 [ ! -d $dir ] && mkdir -p $dir
 echo "$nj" > $dir/num_jobs
-# Restore configuration
-output_unit=$(cat $srcdir/output_unit)
 
 # check files
 num_error=0
-for f in $TLG_dir/TLG.fst $graph/words.txt $input_scp $srcdir/$model; do
+for f in $TLG_dir/TLG.fst $graph/words.txt $input_scp $srcdir/$model $srcdir/config.json; do
   if [ ! -f "$f" ]; then
     echo "Missing file: $f"
     num_error=$((num_error + 1))
@@ -70,9 +67,9 @@ if [ $stage -le 0 ]; then
   python3 ctc-crf/calculate_logits.py \
     --nj=$nj \
     --input_scp=$input_scp \
-    --output_unit=$output_unit \
+    --config=$srcdir/config.json \
     --model=$srcdir/$model \
-    --output_dir=$logits $calculate_logits_opts
+    --output_dir=$logits
 fi
 
 if [ $stage -le 1 ]; then

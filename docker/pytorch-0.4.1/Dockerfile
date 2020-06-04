@@ -1,9 +1,11 @@
-FROM pytorch/pytorch:1.5-cuda10.1-cudnn7-devel
+FROM pytorch/pytorch:0.4.1-cuda9-cudnn7-devel
 
 # Install Kaldi
 RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y cmake wget flac build-essential git subversion automake autoconf unzip sox gfortran libtool python2.7
-RUN ln -sf /bin/bash /bin/sh
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    cmake wget flac build-essential git subversion automake \
+    autoconf unzip sox gfortran libtool python2.7 && \
+    ln -sf /bin/bash /bin/sh
 
 RUN pip install mkl-include h5py && \
     git clone --depth 1 https://github.com/kaldi-asr/kaldi.git /opt/kaldi && \
@@ -14,20 +16,21 @@ RUN pip install mkl-include h5py && \
     make depend -j $(nproc) && \
     make -j $(nproc)
 
-ADD . /opt/CAT
+COPY . /opt/CAT
 
 # Step 1. Copy src/kaldi-patch/latgen-faster.cc to kaldi src/bin, and compile.
-ADD src/kaldi-patch/latgen-faster.cc /opt/kaldi/src/bin
-WORKDIR /opt/kaldi/src/bin
-RUN sed -i "s:BINFILES =:BINFILES = latgen-faster:g" Makefile
-RUN make latgen-faster
+COPY src/kaldi-patch/latgen-faster.cc /opt/kaldi/src/bin
+RUN cd /opt/kaldi/src/bin && \
+    sed -i "s:BINFILES =:BINFILES = latgen-faster:g" Makefile && \
+    make latgen-faster
 
 # Step 2. cd src/ctc_crf, and run the commands below:
 # make OPENFST=/path/to/your/openfst
 # For pytorch version 1.0+, use python setup_1_0.py install in the ctc_crf/Makefile.
-WORKDIR /opt/CAT/src/ctc_crf
-RUN OPENFST=/opt/kaldi/tools/openfst make GPUCTC GPUDEN PATHWEIGHT
-RUN python setup_1_0.py install
+RUN cd /opt/CAT/src/ctc_crf && \
+    OPENFST=/opt/kaldi/tools/openfst make && \
+    cd /opt/CAT/src/batchnorm_src && \
+    PYTORCH_LIB_DIR=/opt/conda/lib/python3.6/site-packages/torch/lib PYTHON=python3 make
 
 # Clear the APT cache
 RUN apt-get clean

@@ -11,11 +11,12 @@ import argparse
 from torch.autograd import Variable
 from model import BLSTM, LSTM, VGGBLSTM, VGGLSTM, LSTMrowCONV, TDNN_LSTM, BLSTMN
 
+
 class Model(nn.Module):
     def __init__(self, net, idim, hdim, K, n_layers, dropout):
         super(Model, self).__init__()
         self.net = eval(net)(idim, hdim, n_layers, dropout)
-        if net in [ 'BLSTM', 'BLSTMN' ]:
+        if net in ['BLSTM', 'BLSTMN']:
             self.linear = nn.Linear(hdim * 2, K)
         else:
             self.linear = nn.Linear(hdim, K)
@@ -27,29 +28,41 @@ class Model(nn.Module):
 
         return netout
 
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="inference network")
-    parser.add_argument("--arch",
-                        choices=[
-                            'BLSTM', 'LSTM', 'VGGBLSTM', 'VGGLSTM',
-                            'LSTMrowCONV', 'TDNN_LSTM', 'BLSTMN'
-                        ],
-                        default='BLSTM')
+    parser.add_argument(
+        "--arch",
+        choices=[
+            'BLSTM', 'LSTM', 'VGGBLSTM', 'VGGLSTM', 'LSTMrowCONV', 'TDNN_LSTM',
+            'BLSTMN'
+        ],
+        default='BLSTM')
     parser.add_argument("--input_scp", type=str)
     parser.add_argument("--output_dir", type=str)
     parser.add_argument("--output_unit", type=int)
-    parser.add_argument("--hdim",type=int,default=512)
-    parser.add_argument("--layers",type=int,default=6)
-    parser.add_argument("--dropout",type=int,default=0.5)
-    parser.add_argument("--feature_size",type=int,default=120)
-    parser.add_argument("--model",type=str)
-    parser.add_argument("--nj",type=int)
+    parser.add_argument("--hdim", type=int, default=512)
+    parser.add_argument("--layers", type=int, default=6)
+    parser.add_argument("--dropout", type=int, default=0.5)
+    parser.add_argument("--feature_size", type=int, default=120)
+    parser.add_argument("--model", type=str)
+    parser.add_argument("--nj", type=int)
+    parser.add_argument("--config", type=str)
     args = parser.parse_args()
 
-    batch_size = 128
+    if args.config:
+        with open(args.config, 'r') as fin:
+            config = json.load(fin)
+            args.arch = config['arch']
+            args.feature_size = config['feature_size']
+            args.hdim = config['hdim']
+            args.output_unit = config['output_unit']
+            args.layers = config['layers']
+            args.dropout = config['dropout']
 
-    model = Model(args.arch, args.feature_size, args.hdim, args.output_unit, args.layers, args.dropout)
+    model = Model(args.arch, args.feature_size, args.hdim, args.output_unit,
+                  args.layers, args.dropout)
     model.load_state_dict(torch.load(args.model))
     model.eval()
     model.cuda()
@@ -58,9 +71,11 @@ if __name__ == "__main__":
     write_mode = 'w'
     if sys.version > '3':
         write_mode = 'wb'
-        
+
     for i in range(n_jobs):
-        writers.append(open('{}/decode.{}.ark'.format(args.output_dir, i+1), write_mode))
+        writers.append(
+            open('{}/decode.{}.ark'.format(args.output_dir, i + 1),
+                 write_mode))
 
     with open(args.input_scp) as f:
         lines = f.readlines()
@@ -76,7 +91,7 @@ if __name__ == "__main__":
         r = netout.cpu().data.numpy()
         r[r == -np.inf] = -1e16
         r = r[0]
-        kaldi_io.write_mat(writers[i%n_jobs], r, key=utt)
+        kaldi_io.write_mat(writers[i % n_jobs], r, key=utt)
 
     for i in range(n_jobs):
         writers[i].close()
