@@ -14,6 +14,7 @@ import timeit
 import os
 import sys
 import argparse
+import json
 from torch.autograd import Function
 from torch.utils.data import Dataset, DataLoader
 from model import BLSTM, LSTM, VGGBLSTM, VGGLSTM, LSTMrowCONV, TDNN_LSTM, BLSTMN
@@ -119,7 +120,7 @@ def train():
         num_workers=0,
         collate_fn=PadCollate())
 
-    cv_dataset = SpeechDataset(args.data_path + "/cv.hdf5")
+    cv_dataset = SpeechDatasetMem(args.data_path + "/cv.hdf5")
     cv_dataloader = DataLoader(
         cv_dataset,
         batch_size=args.batch_size,

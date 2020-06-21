@@ -1,4 +1,4 @@
-FROM pytorch/pytorch:1.5-cuda10.1-cudnn7-runtime
+FROM pytorch/pytorch:1.5-cuda10.1-cudnn7-devel
 
 # Install Kaldi
 RUN apt-get update && \
@@ -34,4 +34,4 @@ RUN python setup_1_0.py install
 # Clear the APT cache
 RUN apt-get clean
 
-WORKDIR /opt/CAT
+WORKDIR /workspace
