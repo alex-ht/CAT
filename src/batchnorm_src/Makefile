@@ -1,20 +1,20 @@
-PYTORCH_LIB_DIR ?= /home/ouzj02/xianghy/pytorch0.41/torch/lib
+PYTORCH_LIB_DIR := /home/ouzj02/xianghy/pytorch0.41/torch/lib
 
-PYTHON ?= python
-NVCC_COMPILE := nvcc -c --std=c++11 -o
+
+PYTHON := python
+NVCC_COMPILE := nvcc -c --std=c++11 -o 
 RM_RF := rm -rf
 
 # Library compilation rules.
-NVCC_FLAGS := -x cu -Xcompiler -fPIC -shared -cudart=shared -rdc=true
+NVCC_FLAGS := -x cu -Xcompiler -fPIC -shared
 
 # File structure.
-INCLUDE_DIRS := include/TH include/THC include/THNN include/THCUNN include/pybind11 include .
+INCLUDE_DIRS := include/TH include/THC include/THNN include/THCUNN include .
 TORCH_FFI_BUILD := build.py
 BN_KERNEL := internel/batchnormp_kernel.so
 TORCH_FFI_TARGET := pytorch/_batch_norm.so
 
 INCLUDE_FLAGS := $(foreach d, $(INCLUDE_DIRS), -I$(PYTORCH_LIB_DIR)/$d)
-INCLUDE_FLAGS += -I$(shell $(PYTHON) -c "from sysconfig import get_paths as gp; print(gp()[\"include\"])")
 
 all: $(TORCH_FFI_TARGET)
 
