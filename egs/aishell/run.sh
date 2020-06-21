@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Copyright 2018-2019 Tsinghua University, Author: Keyu An
-#           2020      Alex Hung (hung_alex@icloud.com)
+#                2020 Alex Hung
 # Apache 2.0.
 
 # This script implements CTC-CRF training on Aishell dataset.
